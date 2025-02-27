@@ -127,6 +127,31 @@ def yield_sf(m, t, d, case):
 
     return n_y
 
+def con_yield_sf(m, t, d, case):
+    """
+    Computes the yield safety factor a quick conservative check.
+
+    Args:
+        m (float): Bending moment in kip-in.
+        t (float): Torque in kip-in.
+        d (float): Shaft diameter in inches.
+        case (int): Selected stress concentration case.
+
+    Returns:
+        n_y (float): Yield safety factor.
+    """
+    sy = 37.5  # Yield strength in ksi
+    kf, kfs = get_kf_kfs(d, case)
+
+    # Compute bending and torsional stresses
+    sigma_a = 32 * m * kf / (pi * d ** 3)
+    sigma_m = sqrt(3) * 16 * t * kfs / (pi * d ** 3)
+
+    # Compute yield safety factor
+    n_y_c = sy / (sigma_a + sigma_m)
+
+    return n_y_c
+
 
 def calc_diameter(m, t, case):
     """
@@ -147,7 +172,7 @@ def calc_diameter(m, t, case):
 
     def g(d):
         """Returns the yield safety factor for a given diameter."""
-        return yield_sf(m, t, d, case)
+        return con_yield_sf(m, t, d, case)
 
     d = 0.01  # Initial guess for shaft diameter in inches
     n = 1.5  # Target safety factor
@@ -167,9 +192,11 @@ if __name__ == '__main__':
         # Compute safety factors
         n_f = fatigue_sf(m, t, d, case)
         n_y = yield_sf(m, t, d, case)
+        n_y_c = con_yield_sf(m, t, d, case)
         d_rec = calc_diameter(m, t, case)
 
         # Print results
         print(f"Fatigue Safety Factor: {n_f:.3f}")
         print(f"Yield Safety Factor: {n_y:.3f}")
+        print(f"Conservative Yield Safety Factor: {n_y_c:.3f}")
         print(f"Recommended Shaft Diameter (for SF=1.5): {d_rec:.3f} in")
